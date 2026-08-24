@@ -5,13 +5,10 @@
  */
 
 $config = require dirname(__DIR__) . '/config.php';
-$dbCfg = $config['db'];
-$stCfg = $config['speedtest'];
-$tgCfg = $config['telegram'] ?? [];
+$stCfg  = $config['speedtest'];
+$tgCfg  = $config['telegram'] ?? [];
 
 require_once __DIR__ . '/telegram_helper.php';
-
-date_default_timezone_set('Asia/Makassar'); // Waktu lokal Sinjai / WITA
 
 $isForceTelegram = in_array('--force-telegram', $argv ?? []) || in_array('-t', $argv ?? []);
 
@@ -173,16 +170,12 @@ if (!$data) {
     }
 }
 
-// 3. Simpan ke MariaDB
+// 3. Simpan ke MariaDB dengan timezone sinkron
 $insertId = null;
 $pdo = null;
 
 try {
-    $dsn = "mysql:host={$dbCfg['host']};port={$dbCfg['port']};dbname={$dbCfg['database']};charset={$dbCfg['charset']}";
-    $pdo = new PDO($dsn, $dbCfg['user'], $dbCfg['password'], [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
+    $pdo = get_speedtest_db_pdo($config);
 
     $sql = "INSERT INTO `log_speedtest` 
         (`ping_ms`, `jitter_ms`, `download_mbps`, `upload_mbps`, `packet_loss_pct`, `isp_name`, `server_name`, `server_sponsor`, `server_location`, `client_ip`, `wifi_ssid`, `raw_output`, `status`, `error_message`, `created_at`) 
@@ -208,7 +201,7 @@ try {
     ]);
 
     $insertId = (int)$pdo->lastInsertId();
-    log_msg("[OK] Data tersimpan di database `{$dbCfg['database']}` (ID: #{$insertId})", $stCfg['log_file']);
+    log_msg("[OK] Data tersimpan di database `{$config['db']['database']}` (ID: #{$insertId})", $stCfg['log_file']);
 
 } catch (PDOException $e) {
     log_msg("[DB ERROR] Gagal menyimpan ke database: " . $e->getMessage(), $stCfg['log_file']);

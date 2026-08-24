@@ -6,16 +6,12 @@ header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
 $config = require dirname(__DIR__) . '/config.php';
-$dbCfg = $config['db'];
 $stCfg = $config['speedtest'];
-
-date_default_timezone_set('Asia/Makassar');
 
 // Deteksi SSID / Koneksi Jaringan
 function get_current_wifi_ssid() {
     $ssid = null;
     
-    // 1. Coba ambil nama SSID via termux-wifi-connectioninfo (timeout 2s)
     $termuxWifi = @shell_exec('timeout 2 termux-wifi-connectioninfo 2>/dev/null');
     if ($termuxWifi) {
         $wifiData = json_decode($termuxWifi, true);
@@ -24,7 +20,6 @@ function get_current_wifi_ssid() {
         }
     }
 
-    // 2. Fallback deteksi status interface lokal
     if (!$ssid) {
         $ifconfig = @shell_exec('ifconfig 2>/dev/null');
         if ($ifconfig) {
@@ -144,13 +139,9 @@ if (!$data) {
     }
 }
 
-// Simpan hasil ke database MariaDB
+// Simpan hasil ke database MariaDB dengan timezone sinkron
 try {
-    $dsn = "mysql:host={$dbCfg['host']};port={$dbCfg['port']};dbname={$dbCfg['database']};charset={$dbCfg['charset']}";
-    $pdo = new PDO($dsn, $dbCfg['user'], $dbCfg['password'], [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
+    $pdo = get_speedtest_db_pdo($config);
 
     $sql = "INSERT INTO `log_speedtest` 
         (`ping_ms`, `jitter_ms`, `download_mbps`, `upload_mbps`, `packet_loss_pct`, `isp_name`, `server_name`, `server_sponsor`, `server_location`, `client_ip`, `wifi_ssid`, `raw_output`, `status`, `error_message`, `created_at`) 

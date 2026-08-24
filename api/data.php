@@ -3,14 +3,9 @@ header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
 $config = require dirname(__DIR__) . '/config.php';
-$dbCfg = $config['db'];
 
 try {
-    $dsn = "mysql:host={$dbCfg['host']};port={$dbCfg['port']};dbname={$dbCfg['database']};charset={$dbCfg['charset']}";
-    $pdo = new PDO($dsn, $dbCfg['user'], $dbCfg['password'], [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
+    $pdo = get_speedtest_db_pdo($config);
 
     // 1. Ambil daftar Bulan (untuk dropdown)
     $monthNamesIndo = [
@@ -146,6 +141,7 @@ try {
 
     echo json_encode([
         'status' => 'success',
+        'app_timezone' => $config['app']['timezone'] ?? 'Asia/Makassar',
         'filters' => [
             'selected_month'   => $filterMonth,
             'selected_isp'     => $filterIsp,

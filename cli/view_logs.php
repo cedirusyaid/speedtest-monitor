@@ -5,17 +5,14 @@
  */
 
 $config = require dirname(__DIR__) . '/config.php';
-$dbCfg = $config['db'];
 
 $limit = isset($argv[1]) ? (int)$argv[1] : 10;
 if ($limit <= 0) $limit = 10;
 
+$tzLabel = ($config['app']['timezone'] === 'Asia/Makassar') ? 'WITA' : $config['app']['timezone'];
+
 try {
-    $dsn = "mysql:host={$dbCfg['host']};port={$dbCfg['port']};dbname={$dbCfg['database']};charset={$dbCfg['charset']}";
-    $pdo = new PDO($dsn, $dbCfg['user'], $dbCfg['password'], [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
+    $pdo = get_speedtest_db_pdo($config);
 
     $stmt = $pdo->prepare("SELECT id, ping_ms, jitter_ms, download_mbps, upload_mbps, isp_name, wifi_ssid, server_sponsor, server_location, status, created_at FROM log_speedtest ORDER BY id DESC LIMIT :limit");
     $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -23,10 +20,10 @@ try {
     $rows = $stmt->fetchAll();
 
     echo "\n========================================================================================================================\n";
-    echo "                                  RIWAYAT SPEEDTEST CENTER (Terakhir {$limit})\n";
+    echo "                              RIWAYAT SPEEDTEST CENTER ({$tzLabel} • Terakhir {$limit})\n";
     echo "========================================================================================================================\n";
     printf("%-5s | %-19s | %-8s | %-9s | %-9s | %-16s | %-18s | %-16s | %-7s\n", 
-        "ID", "Waktu (WITA)", "Ping(ms)", "Down(M)", "Up(M)", "WiFi/Koneksi", "ISP", "Server", "Status"
+        "ID", "Waktu (" . $tzLabel . ")", "Ping(ms)", "Down(M)", "Up(M)", "WiFi/Koneksi", "ISP", "Server", "Status"
     );
     echo "------------------------------------------------------------------------------------------------------------------------\n";
 

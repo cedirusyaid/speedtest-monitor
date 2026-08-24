@@ -44,34 +44,33 @@ view_logs() {
 check_notif_status() {
     $PHP_BIN -r "
         \$config = require '$ROOT_DIR/config.php';
-        \$dbCfg  = \$config['db'];
         \$tgCfg  = \$config['telegram'] ?? [];
         require '$DIR/telegram_helper.php';
         
-        date_default_timezone_set('Asia/Makassar');
-        \$today = date('Y-m-d');
-        \$key   = \$today . ' 09';
-        \$nowH  = date('H:i');
+        \$tzName = \$config['app']['timezone'] ?? 'Asia/Makassar';
+        \$tzLabel = (\$tzName === 'Asia/Makassar') ? 'WITA' : \$tzName;
+        \$today  = date('Y-m-d');
+        \$key    = \$today . ' 09';
+        \$nowH   = date('H:i');
         
         echo \"=== Status Notifikasi Telegram Speedtest ===\n\";
-        echo \"Waktu Saat Ini: \$today \$nowH WITA\n\";
-        echo \"Target Jadwal : Setiap hari jam 09:00 - 09:59 WITA\n\";
+        echo \"Zona Waktu    : {\$tzName} ({\$tzLabel} / {\$config['app']['mysql_tz_offset']})\n\";
+        echo \"Waktu Saat Ini: \$today \$nowH {\$tzLabel}\n\";
+        echo \"Target Jadwal : Setiap hari jam 09:00 - 09:59 {\$tzLabel}\n\";
         echo \"--------------------------------------------\n\";
 
         try {
-            \$dsn = \"mysql:host={\$dbCfg['host']};port={\$dbCfg['port']};dbname={\$dbCfg['database']};charset={\$dbCfg['charset']}\";
-            \$pdo = new PDO(\$dsn, \$dbCfg['user'], \$dbCfg['password'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-            
+            \$pdo = get_speedtest_db_pdo(\$config);
             \$res = check_telegram_already_sent(\$key, 'DAILY_09AM', \$pdo, \$tgCfg['cache_file'] ?? null);
             
             if (\$res['already_sent']) {
                 echo \"[STATUS] SUDAH TERKIRIM HARI INI ✅\n\";
-                echo \"Waktu Kirim : {\$res['sent_at']} WITA\n\";
+                echo \"Waktu Kirim : {\$res['sent_at']} {\$tzLabel}\n\";
                 echo \"Speedtest ID: #{\$res['speedtest_id']}\n\";
                 echo \"Terverifikasi: via {\$res['source']}\n\";
             } else {
                 echo \"[STATUS] BELUM DIKIRIM HARI INI ⏳\n\";
-                echo \"Keterangan : Akan otomatis dikirim pada eksekusi jam 09:xx WITA.\n\";
+                echo \"Keterangan : Akan otomatis dikirim pada eksekusi jam 09:xx {\$tzLabel}.\n\";
             }
             
             echo \"\n--- 5 Riwayat Notifikasi Telegram Terakhir ---\n\";
