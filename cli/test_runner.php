@@ -1,14 +1,19 @@
 <?php
 /**
  * Speedtest Execution & MariaDB Storage Engine (CLI Version)
- * Mendukung format output dari speedtest-cli (--secure) & speedtest-go serta deteksi SSID WiFi.
+ * Mendukung format output speedtest-cli & speedtest-go, deteksi WiFi SSID, serta Notifikasi Telegram Jam 09:00 WITA.
  */
 
 $config = require dirname(__DIR__) . '/config.php';
 $dbCfg = $config['db'];
 $stCfg = $config['speedtest'];
+$tgCfg = $config['telegram'] ?? [];
 
-date_default_timezone_set('Asia/Makassar');
+require_once __DIR__ . '/telegram_helper.php';
+
+date_default_timezone_set('Asia/Makassar'); // Waktu lokal Sinjai / WITA
+
+$isForceTelegram = in_array('--force-telegram', $argv ?? []) || in_array('-t', $argv ?? []);
 
 function log_msg($msg, $logFile = null) {
     $formatted = "[" . date('Y-m-d H:i:s') . "] " . $msg . "\n";
@@ -22,7 +27,6 @@ function log_msg($msg, $logFile = null) {
 function get_current_wifi_ssid() {
     $ssid = null;
     
-    // 1. Coba ambil nama SSID via termux-wifi-connectioninfo (timeout 2s)
     $termuxWifi = @shell_exec('timeout 2 termux-wifi-connectioninfo 2>/dev/null');
     if ($termuxWifi) {
         $wifiData = json_decode($termuxWifi, true);
@@ -31,7 +35,6 @@ function get_current_wifi_ssid() {
         }
     }
 
-    // 2. Fallback deteksi status interface lokal
     if (!$ssid) {
         $ifconfig = @shell_exec('ifconfig 2>/dev/null');
         if ($ifconfig) {
@@ -170,7 +173,10 @@ if (!$data) {
     }
 }
 
-// Simpan ke MariaDB
+// 3. Simpan ke MariaDB
+$insertId = null;
+$pdo = null;
+
 try {
     $dsn = "mysql:host={$dbCfg['host']};port={$dbCfg['port']};dbname={$dbCfg['database']};charset={$dbCfg['charset']}";
     $pdo = new PDO($dsn, $dbCfg['user'], $dbCfg['password'], [
@@ -201,10 +207,37 @@ try {
         ':err'      => $errorMessage
     ]);
 
-    $insertId = $pdo->lastInsertId();
+    $insertId = (int)$pdo->lastInsertId();
     log_msg("[OK] Data tersimpan di database `{$dbCfg['database']}` (ID: #{$insertId})", $stCfg['log_file']);
 
 } catch (PDOException $e) {
     log_msg("[DB ERROR] Gagal menyimpan ke database: " . $e->getMessage(), $stCfg['log_file']);
-    exit(1);
+}
+
+// 4. Mekanisme Notifikasi Telegram (Otomatis Jam 09:00 WITA / Force Mode)
+if ($status === 'SUCCESS' && !empty($tgCfg['enabled'])) {
+    $notifPayload = [
+        'id'            => $insertId,
+        'download_mbps' => $downloadMbps,
+        'upload_mbps'   => $uploadMbps,
+        'ping_ms'       => $pingMs,
+        'jitter_ms'     => $jitterMs,
+        'wifi_ssid'     => $wifiSsid,
+        'isp_name'      => $ispName,
+        'server_name'   => $serverName,
+        'server_sponsor'=> $serverSponsor,
+        'client_ip'     => $clientIp
+    ];
+
+    $notifResult = handle_speedtest_telegram_notification($notifPayload, $pdo, $tgCfg, $isForceTelegram);
+    
+    if ($notifResult['status'] === 'success') {
+        log_msg("[TELEGRAM] Berhasil mengirim notifikasi Telegram! (Key: {$notifResult['period_key']})", $stCfg['log_file']);
+    } elseif ($notifResult['status'] === 'already_sent') {
+        log_msg("[TELEGRAM] {$notifResult['reason']}", $stCfg['log_file']);
+    } elseif ($notifResult['status'] === 'skipped') {
+        log_msg("[TELEGRAM] Melewati notifikasi: {$notifResult['reason']}", $stCfg['log_file']);
+    } else {
+        log_msg("[TELEGRAM ERROR] {$notifResult['reason']}", $stCfg['log_file']);
+    }
 }

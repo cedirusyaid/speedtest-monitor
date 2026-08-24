@@ -1,7 +1,7 @@
 -- ============================================================
 -- Schema Database Speedtest Monitoring Center
 -- Database: db_monitoring
--- Table: log_speedtest
+-- Table: log_speedtest & log_speedtest_notif
 -- ============================================================
 
 CREATE DATABASE IF NOT EXISTS `db_monitoring` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -28,4 +28,16 @@ CREATE TABLE IF NOT EXISTS `log_speedtest` (
   INDEX `idx_status` (`status`),
   INDEX `idx_isp_name` (`isp_name`),
   INDEX `idx_wifi_ssid` (`wifi_ssid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `log_speedtest_notif` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `notif_type` VARCHAR(50) NOT NULL DEFAULT 'DAILY_09AM',
+  `period_key` VARCHAR(50) NOT NULL COMMENT 'Format YYYY-MM-DD atau YYYY-MM-DD HH',
+  `speedtest_id` BIGINT UNSIGNED NULL,
+  `sent_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `message_preview` TEXT NULL,
+  `status` ENUM('SUCCESS', 'FAILED') DEFAULT 'SUCCESS',
+  UNIQUE KEY `uniq_period_type` (`notif_type`, `period_key`),
+  INDEX `idx_sent_at` (`sent_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -16,11 +16,13 @@ show_help() {
     echo "Perintah yang tersedia:"
     echo "  run             Jalankan pengujian kecepatan sekarang (1x test & simpan DB)"
     echo "  view [limit]    Tampilkan riwayat hasil pengujian dari database (default: 10)"
-    echo "  start [menit]   Jalankan background daemon loop (default interval: 30 menit)"
+    echo "  notif-status    Periksa status pengiriman notifikasi Telegram (apakah sudah terkirim hari ini)"
+    echo "  test-notif      Jalankan tes & paksa kirim notifikasi Telegram seketika"
+    echo "  start [menit]   Jalankan background daemon loop (default interval: 60 menit)"
     echo "  stop            Hentikan background daemon"
-    echo "  status          Cek status daemon & koneksi"
+    echo "  status          Cek status daemon & crontab"
     echo "  log             Pantau file log secara real-time"
-    echo "  install-cron [m] Pasang jadwal otomatis ke crontab Termux (default: */30 * * * *)"
+    echo "  install-cron    Pasang jadwal otomatis tiap jam di menit ke-46 (46 * * * *)"
     echo "  remove-cron     Hapus jadwal dari crontab"
     echo ""
 }
@@ -29,13 +31,72 @@ run_now() {
     $PHP_BIN "$DIR/test_runner.php"
 }
 
+test_notif() {
+    echo "[+] Menjalankan pengujian & memicu pengiriman Telegram..."
+    $PHP_BIN "$DIR/test_runner.php" --force-telegram
+}
+
 view_logs() {
     local limit="${1:-10}"
     $PHP_BIN "$DIR/view_logs.php" "$limit"
 }
 
+check_notif_status() {
+    $PHP_BIN -r "
+        \$config = require '$ROOT_DIR/config.php';
+        \$dbCfg  = \$config['db'];
+        \$tgCfg  = \$config['telegram'] ?? [];
+        require '$DIR/telegram_helper.php';
+        
+        date_default_timezone_set('Asia/Makassar');
+        \$today = date('Y-m-d');
+        \$key   = \$today . ' 09';
+        \$nowH  = date('H:i');
+        
+        echo \"=== Status Notifikasi Telegram Speedtest ===\n\";
+        echo \"Waktu Saat Ini: \$today \$nowH WITA\n\";
+        echo \"Target Jadwal : Setiap hari jam 09:00 - 09:59 WITA\n\";
+        echo \"--------------------------------------------\n\";
+
+        try {
+            \$dsn = \"mysql:host={\$dbCfg['host']};port={\$dbCfg['port']};dbname={\$dbCfg['database']};charset={\$dbCfg['charset']}\";
+            \$pdo = new PDO(\$dsn, \$dbCfg['user'], \$dbCfg['password'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+            
+            \$res = check_telegram_already_sent(\$key, 'DAILY_09AM', \$pdo, \$tgCfg['cache_file'] ?? null);
+            
+            if (\$res['already_sent']) {
+                echo \"[STATUS] SUDAH TERKIRIM HARI INI ✅\n\";
+                echo \"Waktu Kirim : {\$res['sent_at']} WITA\n\";
+                echo \"Speedtest ID: #{\$res['speedtest_id']}\n\";
+                echo \"Terverifikasi: via {\$res['source']}\n\";
+            } else {
+                echo \"[STATUS] BELUM DIKIRIM HARI INI ⏳\n\";
+                echo \"Keterangan : Akan otomatis dikirim pada eksekusi jam 09:xx WITA.\n\";
+            }
+            
+            echo \"\n--- 5 Riwayat Notifikasi Telegram Terakhir ---\n\";
+            \$stmt = \$pdo->query(\"SELECT id, notif_type, period_key, speedtest_id, sent_at, status FROM log_speedtest_notif ORDER BY id DESC LIMIT 5\");
+            \$rows = \$stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (empty(\$rows)) {
+                echo \"Belum ada catatan riwayat notifikasi.\n\";
+            } else {
+                printf(\"%-4s | %-12s | %-14s | %-6s | %-19s | %-7s\n\", 'ID', 'Tipe', 'Periode', 'TestID', 'Waktu Kirim', 'Status');
+                echo \"----------------------------------------------------------------------\n\";
+                foreach (\$rows as \$r) {
+                    printf(\"%-4d | %-12s | %-14s | #%-5s | %-19s | %-7s\n\",
+                        \$r['id'], \$r['notif_type'], \$r['period_key'], \$r['speedtest_id'] ?? '-', \$r['sent_at'], \$r['status']
+                    );
+                }
+            }
+            echo \"============================================\n\";
+        } catch (Exception \$e) {
+            echo \"[ERROR] Gagal membaca status: \" . \$e->getMessage() . \"\n\";
+        }
+    "
+}
+
 start_daemon() {
-    local interval="${1:-30}"
+    local interval="${1:-60}"
     if [ -f "$PID_FILE" ]; then
         local pid=$(cat "$PID_FILE")
         if kill -0 "$pid" 2>/dev/null; then
@@ -106,11 +167,11 @@ tail_log() {
 }
 
 install_cron() {
-    local minutes="${1:-30}"
-    local cron_cmd="*/$minutes * * * * $PHP_BIN $DIR/test_runner.php >> $LOG_FILE 2>&1"
+    local cron_cmd="46 * * * * $PHP_BIN $DIR/test_runner.php >> $LOG_FILE 2>&1"
     
     (crontab -l 2>/dev/null | grep -v "$DIR/test_runner.php" ; echo "$cron_cmd") | crontab -
-    echo "[OK] Cron job berhasil dipasang setiap $minutes menit!"
+    echo "[OK] Cron job berhasil dipasang setiap jam di menit ke-46!"
+    echo "Pola: 46 * * * *"
     echo "Entry: $cron_cmd"
 }
 
@@ -126,6 +187,12 @@ case "$1" in
     view)
         view_logs "$2"
         ;;
+    notif-status)
+        check_notif_status
+        ;;
+    test-notif)
+        test_notif
+        ;;
     start)
         start_daemon "$2"
         ;;
@@ -139,7 +206,7 @@ case "$1" in
         tail_log
         ;;
     install-cron)
-        install_cron "$2"
+        install_cron
         ;;
     remove-cron)
         remove_cron
