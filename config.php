@@ -46,8 +46,23 @@ if (!preg_match('/^\//', $logPath)) {
     $logPath = __DIR__ . '/' . $logPath;
 }
 
+// 3. Deteksi Nama Device / Hostname
+$rawHost = gethostname() ?: php_uname('n');
+if (empty($rawHost) || strtolower($rawHost) === 'localhost') {
+    if (!empty($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME'] !== 'localhost' && $_SERVER['SERVER_NAME'] !== '127.0.0.1') {
+        $rawHost = explode('.', $_SERVER['SERVER_NAME'])[0];
+    } elseif (!empty($_SERVER['HTTP_HOST'])) {
+        $hostOnly = explode(':', $_SERVER['HTTP_HOST'])[0];
+        if ($hostOnly !== 'localhost' && $hostOnly !== '127.0.0.1') {
+            $rawHost = explode('.', $hostOnly)[0];
+        }
+    }
+}
+$deviceName = $env['APP_DEVICE_NAME'] ?? getenv('APP_DEVICE_NAME') ?: ($rawHost ?: 'server');
+
 $config = [
     'app' => [
+        'device_name'     => $deviceName,
         'timezone'        => $appTimezone,
         'mysql_tz_offset' => $mysqlTzOffset,
     ],
@@ -70,7 +85,7 @@ $config = [
         'chat_id'       => $env['TELEGRAM_CHAT_ID'] ?? getenv('TELEGRAM_CHAT_ID') ?: '-1002836383641',
         'daily_hour'    => (int)($env['TELEGRAM_DAILY_HOUR'] ?? getenv('TELEGRAM_DAILY_HOUR') ?: 9),
         'cache_file'    => __DIR__ . '/.telegram_notif_cache.json',
-        'dashboard_url' => $env['TELEGRAM_DASHBOARD_URL'] ?? getenv('TELEGRAM_DASHBOARD_URL') ?: 'http://cepad/speedtest/',
+        'dashboard_url' => $env['TELEGRAM_DASHBOARD_URL'] ?? getenv('TELEGRAM_DASHBOARD_URL') ?: "http://{$deviceName}/speedtest/",
     ]
 ];
 

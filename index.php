@@ -1,9 +1,15 @@
+<?php
+$appConfig = file_exists(__DIR__ . '/config.php') ? require __DIR__ . '/config.php' : [];
+$deviceName = $appConfig['app']['device_name'] ?? (gethostname() ?: 'Server');
+$serverHost = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
+$phpVer = 'PHP ' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
+?>
 <!DOCTYPE html>
 <html lang="id" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Speedtest Monitoring & Analytics Center | CEPAD</title>
+    <title>Speedtest Monitoring & Analytics Center | <?= htmlspecialchars(strtoupper($deviceName)) ?></title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -63,7 +69,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                        Speedtest Center <span class="text-[11px] bg-indigo-500/20 text-indigo-400 font-mono px-2 py-0.5 rounded border border-indigo-500/30">CEPAD</span>
+                        Speedtest Center <span class="text-[11px] bg-indigo-500/20 text-indigo-400 font-mono px-2 py-0.5 rounded border border-indigo-500/30"><?= htmlspecialchars(strtoupper($deviceName)) ?></span>
                     </h1>
                     <p class="text-xs text-slate-400">Bandwidth & Latency Analytics • Unified Repository</p>
                 </div>
@@ -318,8 +324,8 @@
                 &copy; <?= date('Y') ?> Speedtest Center • Managed by <strong>Tiara AI</strong> for <strong>Boss Rusyaid</strong>
             </div>
             <div class="flex items-center space-x-4">
-                <span>Device: <code class="text-slate-400">cepad</code></span>
-                <span>Tailscale: <code class="text-slate-400">100.122.111.21</code></span>
+                <span>Device: <code class="text-slate-400"><?= htmlspecialchars($deviceName) ?></code></span>
+                <span>Host: <code class="text-slate-400"><?= htmlspecialchars($serverHost) ?></code></span>
             </div>
         </div>
     </footer>

@@ -167,10 +167,11 @@ function handle_speedtest_telegram_notification(array $data, $pdo, array $tgConf
     $server      = htmlspecialchars(($data['server_sponsor'] ?? '') ?: ($data['server_name'] ?? '-'));
     $ip          = htmlspecialchars($data['client_ip'] ?? '-');
     $waktu       = date('d M Y, H:i') . ' WITA';
-    $dashUrl     = $tgConfig['dashboard_url'] ?? 'http://cepad/speedtest/';
+    $devName     = $tgConfig['device_name'] ?? (getenv('APP_DEVICE_NAME') ?: (gethostname() ?: 'Server'));
+    $dashUrl     = $tgConfig['dashboard_url'] ?? "http://{$devName}/speedtest/";
 
     $msg = "⚡ <b>LAPORAN SPEEDTEST INTERNET</b> #speedtest\n";
-    $msg .= "📱 <b>Device:</b> <code>cepad</code> (Sinjai)\n";
+    $msg .= "📱 <b>Device:</b> <code>{$devName}</code> (Sinjai)\n";
     $msg .= "🗓️ <b>Waktu:</b> <code>{$waktu}</code>\n";
     $msg .= "━━━━━━━━━━━━━━━━━━━━━\n";
     $msg .= "📶 <b>WiFi / SSID:</b> <b>{$wifiSsid}</b>\n";

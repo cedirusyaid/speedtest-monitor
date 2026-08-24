@@ -7,6 +7,7 @@
 $config = require dirname(__DIR__) . '/config.php';
 $stCfg  = $config['speedtest'];
 $tgCfg  = $config['telegram'] ?? [];
+$tgCfg['device_name'] = $config['app']['device_name'] ?? 'Server';
 
 require_once __DIR__ . '/telegram_helper.php';
 
