@@ -51,8 +51,8 @@ return [
     ],
     'telegram' => [
         'enabled'       => filter_var($env['TELEGRAM_ENABLED'] ?? getenv('TELEGRAM_ENABLED') ?: true, FILTER_VALIDATE_BOOLEAN),
-        'token'         => $env['TELEGRAM_BOT_TOKEN'] ?? getenv('TELEGRAM_BOT_TOKEN') ?: '1815222663:AAFf4n1SMU430q4H0xksS3L2YnWcKqPGp_8',
-        'chat_id'       => $env['TELEGRAM_CHAT_ID'] ?? getenv('TELEGRAM_CHAT_ID') ?: '-1001422533402',
+        'token'         => $env['TELEGRAM_BOT_TOKEN'] ?? getenv('TELEGRAM_BOT_TOKEN') ?: '8270886210:AAHoidg-_LpnTUBgLys96-U17hHkjUrCAd0',
+        'chat_id'       => $env['TELEGRAM_CHAT_ID'] ?? getenv('TELEGRAM_CHAT_ID') ?: '-1002836383641',
         'daily_hour'    => (int)($env['TELEGRAM_DAILY_HOUR'] ?? getenv('TELEGRAM_DAILY_HOUR') ?: 9),
         'cache_file'    => __DIR__ . '/.telegram_notif_cache.json',
         'dashboard_url' => $env['TELEGRAM_DASHBOARD_URL'] ?? getenv('TELEGRAM_DASHBOARD_URL') ?: 'http://cepad/speedtest/',
