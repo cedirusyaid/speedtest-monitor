@@ -169,7 +169,7 @@ function handle_speedtest_telegram_notification(array $data, $pdo, array $tgConf
     $waktu       = date('d M Y, H:i') . ' WITA';
     $dashUrl     = $tgConfig['dashboard_url'] ?? 'http://cepad/speedtest/';
 
-    $msg = "⚡ <b>LAPORAN SPEEDTEST INTERNET (09:00 WITA)</b> ⚡\n";
+    $msg = "⚡ <b>LAPORAN SPEEDTEST INTERNET</b> #speedtest\n";
     $msg .= "📱 <b>Device:</b> <code>cepad</code> (Sinjai)\n";
     $msg .= "🗓️ <b>Waktu:</b> <code>{$waktu}</code>\n";
     $msg .= "━━━━━━━━━━━━━━━━━━━━━\n";
