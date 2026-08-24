@@ -1,0 +1,19 @@
+# Logs
+*.log
+speedtest.log
+cli/speedtest.log
+
+# PID files
+*.pid
+daemon.pid
+cli/daemon.pid
+
+# Environment & local overrides
+.env
+.env.local
+
+# OS & Editor temp files
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
