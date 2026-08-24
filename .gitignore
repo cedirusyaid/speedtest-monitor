@@ -11,6 +11,8 @@ cli/daemon.pid
 # Environment & local overrides
 .env
 .env.local
+.telegram_notif_cache.json
+*.cache.json
 
 # OS & Editor temp files
 .DS_Store
