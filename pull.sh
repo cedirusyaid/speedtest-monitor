@@ -1,4 +1,4 @@
-#!/data/data/com.termux/files/usr/bin/bash
+#!/data/data/com.termux/files/usr/share/apache2/default-site/htdocs/speedtest/pull.sh
 # ==============================================================================
 # CEPAD Deployment Tool: Smart Git Pull & Migration Sync
 # ==============================================================================
