@@ -10,8 +10,9 @@ echo "=== CEPAD Git Sync (Pull) ==="
 
 REMOTE_URL=$(git remote get-url origin 2>/dev/null)
 if [ -n "$REMOTE_URL" ]; then
-    echo "[+] Mengunduh pembaruan terbaru dari remote..."
-    git pull --no-rebase origin "$(git branch --show-current 2>/dev/null || echo 'main')"
+    BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+    echo "[+] Mengunduh pembaruan terbaru dari remote ($BRANCH_NAME)..."
+    git pull --no-rebase origin "$BRANCH_NAME"
 else
     echo "[INFO] Remote origin belum diatur. Melewati git pull."
 fi

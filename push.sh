@@ -37,8 +37,9 @@ git commit -m "$COMMIT_MSG"
 # Cek apakah remote origin sudah dipasang
 REMOTE_URL=$(git remote get-url origin 2>/dev/null)
 if [ -n "$REMOTE_URL" ]; then
-    echo "[+] Melakukan push ke origin..."
-    git push origin "$(git branch --show-current)"
+    BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+    echo "[+] Melakukan push ke origin ($BRANCH_NAME)..."
+    git push origin "$BRANCH_NAME"
 else
     echo "[i] Remote origin belum diatur. Untuk menghubungkan ke GitHub:"
     echo "    git remote add origin git@github.com:USERNAME/REPO.git"
