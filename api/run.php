@@ -43,22 +43,55 @@ $data = null;
 $usedEngine = '';
 
 // 1. Prioritas 1: speedtest-cli dengan opsi HTTPS (--secure)
-$pyBinary = trim(shell_exec('command -v speedtest-cli 2>/dev/null') ?: '/data/data/com.termux/files/usr/bin/speedtest-cli');
-if (file_exists($pyBinary)) {
-    $cmd = escapeshellcmd($pyBinary) . " --secure --json --timeout 45 2>&1";
+$pyBinary = null;
+$pyCandidates = array_filter([
+    $stCfg['binary'] ?? null,
+    trim((string)shell_exec('command -v speedtest-cli 2>/dev/null')),
+    '/home/enikda/.local/bin/speedtest-cli',
+    '/usr/local/bin/speedtest-cli',
+    '/usr/bin/speedtest-cli',
+    '/data/data/com.termux/files/usr/bin/speedtest-cli'
+]);
+foreach ($pyCandidates as $cand) {
+    if (file_exists($cand)) {
+        $pyBinary = $cand;
+        break;
+    }
+}
+
+if ($pyBinary && file_exists($pyBinary)) {
+    $pythonPathEnv = file_exists('/home/enikda/.local/lib/python3.7/site-packages')
+        ? "export PYTHONPATH=/home/enikda/.local/lib/python3.7/site-packages:\$PYTHONPATH; "
+        : "";
+    $cmd = $pythonPathEnv . escapeshellcmd($pyBinary) . " --secure --json --timeout 45 2>&1";
     $output = shell_exec($cmd);
     $decoded = json_decode((string)$output, true);
     if ($decoded && isset($decoded['download']) && isset($decoded['upload'])) {
         $rawOutput = $output;
         $data = $decoded;
         $usedEngine = 'speedtest-cli (secure)';
+    } else {
+        $rawOutput = $output;
     }
 }
 
 // 2. Prioritas 2 (Fallback): speedtest-go jika prioritas 1 gagal
 if (!$data) {
-    $goBinary = trim(shell_exec('command -v speedtest-go 2>/dev/null') ?: '/data/data/com.termux/files/usr/bin/speedtest-go');
-    if (file_exists($goBinary)) {
+    $goBinary = null;
+    $goCandidates = array_filter([
+        trim((string)shell_exec('command -v speedtest-go 2>/dev/null')),
+        '/home/enikda/.local/bin/speedtest-go',
+        '/usr/local/bin/speedtest-go',
+        '/usr/bin/speedtest-go',
+        '/data/data/com.termux/files/usr/bin/speedtest-go'
+    ]);
+    foreach ($goCandidates as $cand) {
+        if (file_exists($cand)) {
+            $goBinary = $cand;
+            break;
+        }
+    }
+    if ($goBinary && file_exists($goBinary)) {
         $cmd = escapeshellcmd($goBinary) . " --json 2>&1";
         $output = shell_exec($cmd);
         $decoded = json_decode((string)$output, true);

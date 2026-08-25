@@ -1,4 +1,4 @@
-#!/data/data/com.termux/files/usr/bin/bash
+#!/usr/bin/env bash
 # ==============================================================================
 # Speedtest Center CLI Management & Daemon
 # ==============================================================================
@@ -22,7 +22,7 @@ show_help() {
     echo "  stop            Hentikan background daemon"
     echo "  status          Cek status daemon & crontab"
     echo "  log             Pantau file log secara real-time"
-    echo "  install-cron    Pasang jadwal otomatis tiap jam di menit ke-46 (46 * * * *)"
+    echo "  install-cron [menit] Pasang jadwal otomatis di crontab (default: 30 menit -> */30 * * * *)"
     echo "  remove-cron     Hapus jadwal dari crontab"
     echo ""
 }
@@ -166,11 +166,18 @@ tail_log() {
 }
 
 install_cron() {
-    local cron_cmd="46 * * * * $PHP_BIN $DIR/test_runner.php >> $LOG_FILE 2>&1"
+    local interval="${1:-30}"
+    local cron_schedule
+    if [ "$interval" -ge 60 ]; then
+        cron_schedule="0 * * * *"
+    else
+        cron_schedule="*/${interval} * * * *"
+    fi
+    local cron_cmd="$cron_schedule $PHP_BIN $DIR/test_runner.php >> $LOG_FILE 2>&1"
     
     (crontab -l 2>/dev/null | grep -v "$DIR/test_runner.php" ; echo "$cron_cmd") | crontab -
-    echo "[OK] Cron job berhasil dipasang setiap jam di menit ke-46!"
-    echo "Pola: 46 * * * *"
+    echo "[OK] Cron job berhasil dipasang setiap $interval menit!"
+    echo "Jadwal: $cron_schedule"
     echo "Entry: $cron_cmd"
 }
 
@@ -205,7 +212,7 @@ case "$1" in
         tail_log
         ;;
     install-cron)
-        install_cron
+        install_cron "$2"
         ;;
     remove-cron)
         remove_cron
