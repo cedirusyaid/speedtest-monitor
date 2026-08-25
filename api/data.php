@@ -121,6 +121,165 @@ try {
         $chartPings[] = (float)$cr['ping_ms'];
     }
 
+    // 7.5 Analisis Statistik Jam Rawan (Hourly Congestion & Risk Analysis)
+    $sqlHourly = "
+        SELECT 
+            HOUR(created_at) AS hr,
+            COUNT(*) AS total_tests,
+            SUM(CASE WHEN status = 'SUCCESS' THEN 1 ELSE 0 END) AS success_tests,
+            SUM(CASE WHEN status != 'SUCCESS' THEN 1 ELSE 0 END) AS fail_tests,
+            COALESCE(AVG(CASE WHEN status = 'SUCCESS' THEN download_mbps END), 0) AS avg_download,
+            COALESCE(AVG(CASE WHEN status = 'SUCCESS' THEN upload_mbps END), 0) AS avg_upload,
+            COALESCE(AVG(CASE WHEN status = 'SUCCESS' THEN ping_ms END), 0) AS avg_ping,
+            COALESCE(AVG(CASE WHEN status = 'SUCCESS' THEN jitter_ms END), 0) AS avg_jitter,
+            COALESCE(MIN(CASE WHEN status = 'SUCCESS' THEN download_mbps END), 0) AS min_download,
+            COALESCE(MAX(CASE WHEN status = 'SUCCESS' THEN ping_ms END), 0) AS max_ping
+        FROM log_speedtest 
+        WHERE {$whereSql}
+        GROUP BY HOUR(created_at)
+    ";
+    $stmtHourly = $pdo->prepare($sqlHourly);
+    $stmtHourly->execute($params);
+    $rawHourly = [];
+    while ($hRow = $stmtHourly->fetch()) {
+        $rawHourly[(int)$hRow['hr']] = $hRow;
+    }
+
+    $hourlyLabels = [];
+    $hourlyDownloads = [];
+    $hourlyUploads = [];
+    $hourlyPings = [];
+    $hourlyRiskScores = [];
+    $hourlyRiskColors = [];
+    $hourlyDetails = [];
+
+    $globalAvgPing = (float)$summary['avg_ping'] ?: 40;
+    $globalAvgDl   = (float)$summary['avg_download'] ?: 30;
+
+    $worstHour = null;
+    $maxRiskScore = -1;
+    $bestHour = null;
+    $minRiskScore = 999;
+
+    $workHoursRisk = [];
+    $nightHoursRisk = [];
+    $offpeakHoursRisk = [];
+
+    for ($h = 0; $h < 24; $h++) {
+        $hLabel = sprintf('%02d:00', $h);
+        $hourlyLabels[] = $hLabel;
+
+        if (isset($rawHourly[$h])) {
+            $hrData = $rawHourly[$h];
+            $avgDl   = round((float)$hrData['avg_download'], 2);
+            $avgUl   = round((float)$hrData['avg_upload'], 2);
+            $avgP    = round((float)$hrData['avg_ping'], 2);
+            $avgJit  = round((float)$hrData['avg_jitter'], 2);
+            $totalT  = (int)$hrData['total_tests'];
+            $failT   = (int)$hrData['fail_tests'];
+
+            // Kalkulasi Risk Score (0 - 100)
+            $pingRatio = $globalAvgPing > 0 ? ($avgP / $globalAvgPing) : 1;
+            $pingScore = min(45, max(0, ($avgP > 30 ? ($avgP - 30) * 0.4 : 0) + ($pingRatio > 1.15 ? ($pingRatio - 1) * 25 : 0)));
+
+            $dlDropRatio = $globalAvgDl > 0 ? max(0, ($globalAvgDl - $avgDl) / $globalAvgDl) : 0;
+            $dlScore = min(40, $dlDropRatio * 40);
+
+            $failRatio = $totalT > 0 ? ($failT / $totalT) : 0;
+            $failScore = min(15, ($failRatio * 15) + ($avgJit > 15 ? 5 : 0));
+
+            $riskScore = (int)round(min(100, max(5, $pingScore + $dlScore + $failScore)));
+
+            if ($riskScore >= 60) {
+                $riskLevel = 'RAWAN';
+                $riskColor = '#ef4444'; // Merah
+                $riskBadge = 'Rawan / Bottleneck';
+            } elseif ($riskScore >= 35) {
+                $riskLevel = 'WASPAD';
+                $riskColor = '#f59e0b'; // Kuning
+                $riskBadge = 'Padat / Sedang';
+            } else {
+                $riskLevel = 'LANCAR';
+                $riskColor = '#10b981'; // Hijau
+                $riskBadge = 'Stabil / Lancar';
+            }
+
+            if ($riskScore > $maxRiskScore) {
+                $maxRiskScore = $riskScore;
+                $worstHour = [
+                    'hour'         => $hLabel,
+                    'hour_num'     => $h,
+                    'risk_score'   => $riskScore,
+                    'level'        => $riskLevel,
+                    'avg_download' => $avgDl,
+                    'avg_ping'     => $avgP,
+                    'total_tests'  => $totalT
+                ];
+            }
+
+            if ($riskScore < $minRiskScore) {
+                $minRiskScore = $riskScore;
+                $bestHour = [
+                    'hour'         => $hLabel,
+                    'hour_num'     => $h,
+                    'risk_score'   => $riskScore,
+                    'level'        => $riskLevel,
+                    'avg_download' => $avgDl,
+                    'avg_ping'     => $avgP,
+                    'total_tests'  => $totalT
+                ];
+            }
+
+            if ($h >= 8 && $h <= 17) $workHoursRisk[] = $riskScore;
+            elseif ($h >= 18 && $h <= 23) $nightHoursRisk[] = $riskScore;
+            else $offpeakHoursRisk[] = $riskScore;
+
+            $hourlyDownloads[]   = $avgDl;
+            $hourlyUploads[]     = $avgUl;
+            $hourlyPings[]       = $avgP;
+            $hourlyRiskScores[]  = $riskScore;
+            $hourlyRiskColors[]  = $riskColor;
+
+            $hourlyDetails[] = [
+                'hour'         => $hLabel,
+                'has_data'     => true,
+                'total_tests'  => $totalT,
+                'avg_download' => $avgDl,
+                'avg_upload'   => $avgUl,
+                'avg_ping'     => $avgP,
+                'avg_jitter'   => $avgJit,
+                'risk_score'   => $riskScore,
+                'risk_level'   => $riskLevel,
+                'risk_badge'   => $riskBadge,
+                'risk_color'   => $riskColor
+            ];
+        } else {
+            $hourlyDownloads[]   = 0;
+            $hourlyUploads[]     = 0;
+            $hourlyPings[]       = 0;
+            $hourlyRiskScores[]  = 0;
+            $hourlyRiskColors[]  = '#334155';
+
+            $hourlyDetails[] = [
+                'hour'         => $hLabel,
+                'has_data'     => false,
+                'total_tests'  => 0,
+                'avg_download' => 0,
+                'avg_upload'   => 0,
+                'avg_ping'     => 0,
+                'avg_jitter'   => 0,
+                'risk_score'   => 0,
+                'risk_level'   => 'NO_DATA',
+                'risk_badge'   => 'Belum Ada Data',
+                'risk_color'   => '#334155'
+            ];
+        }
+    }
+
+    $avgWorkRisk    = count($workHoursRisk) > 0 ? (int)round(array_sum($workHoursRisk) / count($workHoursRisk)) : null;
+    $avgNightRisk   = count($nightHoursRisk) > 0 ? (int)round(array_sum($nightHoursRisk) / count($nightHoursRisk)) : null;
+    $avgOffpeakRisk = count($offpeakHoursRisk) > 0 ? (int)round(array_sum($offpeakHoursRisk) / count($offpeakHoursRisk)) : null;
+
     // 8. Data Log Tabel
     $sqlLogs = "
         SELECT id, ping_ms, jitter_ms, download_mbps, upload_mbps, packet_loss_pct, 
@@ -158,6 +317,20 @@ try {
             'max_download'   => round((float)$summary['max_download'], 2),
             'max_upload'     => round((float)$summary['max_upload'], 2),
             'latest'         => $latest
+        ],
+        'hourly_risk' => [
+            'labels'              => $hourlyLabels,
+            'downloads'           => $hourlyDownloads,
+            'uploads'             => $hourlyUploads,
+            'pings'               => $hourlyPings,
+            'risk_scores'         => $hourlyRiskScores,
+            'risk_colors'         => $hourlyRiskColors,
+            'details'             => $hourlyDetails,
+            'worst_hour'          => $worstHour,
+            'best_hour'           => $bestHour,
+            'avg_work_risk'       => $avgWorkRisk,
+            'avg_night_risk'      => $avgNightRisk,
+            'avg_offpeak_risk'    => $avgOffpeakRisk
         ],
         'chart' => [
             'labels'    => $chartLabels,

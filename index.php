@@ -273,6 +273,110 @@ $phpVer = 'PHP ' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
             </div>
         </div>
 
+        <!-- Hourly Risk & Peak Bottleneck Section -->
+        <div class="glass-card rounded-2xl p-6 space-y-6 border border-slate-800">
+            <!-- Header Section -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+                <div>
+                    <h2 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
+                        Statistik & Grafik Jam Rawan Koneksi
+                    </h2>
+                    <p class="text-xs text-slate-400">Pola fluktuasi latensi dan penurunan bandwidth selama 24 jam (Bottleneck Analysis)</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3 text-xs">
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> <span class="text-slate-300">Lancar (&lt; 35%)</span></span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> <span class="text-slate-300">Padat (35-60%)</span></span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span> <span class="text-slate-300">Rawan (&gt; 60%)</span></span>
+                </div>
+            </div>
+
+            <!-- Risk Cards Summary -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- Worst Hour Card -->
+                <div class="bg-slate-900/80 rounded-xl p-4 border border-rose-500/20 relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold text-rose-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-fire text-rose-500"></i> Jam Paling Rawan
+                        </span>
+                        <span id="badgeWorstRisk" class="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">--</span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="valWorstHour" class="text-2xl font-extrabold text-white">--:--</span>
+                        <span class="text-xs text-slate-400 font-mono">WITA</span>
+                    </div>
+                    <div id="descWorstHour" class="mt-2 text-xs text-slate-400 truncate">
+                        Memuat data...
+                    </div>
+                </div>
+
+                <!-- Best Hour Card -->
+                <div class="bg-slate-900/80 rounded-xl p-4 border border-emerald-500/20 relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-check text-emerald-500"></i> Jam Paling Stabil
+                        </span>
+                        <span id="badgeBestRisk" class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">--</span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="valBestHour" class="text-2xl font-extrabold text-white">--:--</span>
+                        <span class="text-xs text-slate-400 font-mono">WITA</span>
+                    </div>
+                    <div id="descBestHour" class="mt-2 text-xs text-slate-400 truncate">
+                        Memuat data...
+                    </div>
+                </div>
+
+                <!-- Period Segment Risk Card -->
+                <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold text-indigo-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-chart-pie text-indigo-400"></i> Indeks Sesi Harian
+                        </span>
+                    </div>
+                    <div class="space-y-1.5 text-xs">
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400">Jam Kerja (08-17):</span>
+                            <span id="valWorkRisk" class="font-mono font-bold text-slate-200">--</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400">Jam Malam (18-23):</span>
+                            <span id="valNightRisk" class="font-mono font-bold text-slate-200">--</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400">Dini Hari (00-07):</span>
+                            <span id="valOffpeakRisk" class="font-mono font-bold text-slate-200">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Combo Chart 24 Hours (Bar + Line) -->
+            <div class="space-y-2">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-400">
+                    <span class="font-medium text-slate-300">Grafik Komparasi 24 Jam: Skor Kerawanan (%) vs Latensi (ms) &amp; Download (Mbps)</span>
+                    <div class="flex items-center gap-3">
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-rose-500/80"></span> Skor Rawan (Bar)</span>
+                        <span class="flex items-center gap-1 text-amber-400"><span class="w-2.5 h-1 bg-amber-400"></span> Avg Ping</span>
+                        <span class="flex items-center gap-1 text-emerald-400"><span class="w-2.5 h-1 bg-emerald-400"></span> Avg Download</span>
+                    </div>
+                </div>
+                <div class="h-72 w-full">
+                    <canvas id="hourlyRiskChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 24-Hour Matrix Heatmap -->
+            <div>
+                <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <i class="fa-solid fa-table-cells text-indigo-400"></i> Matriks Jam 24 Jam (Klik untuk Rincian)
+                </h3>
+                <div id="hourlyMatrixGrid" class="grid grid-cols-6 sm:grid-cols-12 md:grid-cols-24 gap-1.5">
+                    <!-- 24 items injected via JS -->
+                </div>
+            </div>
+        </div>
+
         <!-- History Log Table -->
         <div class="glass-card rounded-2xl overflow-hidden">
             <div class="p-5 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -334,6 +438,7 @@ $phpVer = 'PHP ' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
     <script>
         let speedChartInstance = null;
         let pingChartInstance = null;
+        let hourlyRiskChartInstance = null;
         let isRunning = false;
         let availableMonthsLoaded = false;
         let availableIspsLoaded = false;
@@ -343,6 +448,7 @@ $phpVer = 'PHP ' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
         function initCharts() {
             const ctxSpeed = document.getElementById('speedChart').getContext('2d');
             const ctxPing = document.getElementById('pingChart').getContext('2d');
+            const ctxHourly = document.getElementById('hourlyRiskChart').getContext('2d');
 
             speedChartInstance = new Chart(ctxSpeed, {
                 type: 'line',
@@ -422,6 +528,116 @@ $phpVer = 'PHP ' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
                     scales: {
                         x: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
                         y: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, ticks: { color: '#94a3b8', font: { size: 10 } }, beginAtZero: true }
+                    }
+                }
+            });
+
+            hourlyRiskChartInstance = new Chart(ctxHourly, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: 'Skor Rawan (%)',
+                            backgroundColor: [],
+                            borderRadius: 4,
+                            barPercentage: 0.6,
+                            data: [],
+                            yAxisID: 'yRisk'
+                        },
+                        {
+                            type: 'line',
+                            label: 'Avg Ping (ms)',
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                            tension: 0.35,
+                            data: [],
+                            yAxisID: 'yPing'
+                        },
+                        {
+                            type: 'line',
+                            label: 'Avg Download (Mbps)',
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                            tension: 0.35,
+                            data: [],
+                            yAxisID: 'ySpeed'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#151d30',
+                            titleColor: '#fff',
+                            bodyColor: '#cbd5e1',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label || '';
+                                    const val = context.parsed.y;
+                                    if (label.includes('Skor Rawan')) {
+                                        return `🚨 ${label}: ${val}%`;
+                                    } else if (label.includes('Ping')) {
+                                        return `⏱️ ${label}: ${val} ms`;
+                                    } else if (label.includes('Download')) {
+                                        return `📥 ${label}: ${val} Mbps`;
+                                    }
+                                    return `${label}: ${val}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                            ticks: { color: '#94a3b8', font: { size: 10 } }
+                        },
+                        yRisk: {
+                            type: 'linear',
+                            position: 'left',
+                            min: 0,
+                            max: 100,
+                            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { size: 10 },
+                                callback: val => val + '%'
+                            }
+                        },
+                        ySpeed: {
+                            type: 'linear',
+                            position: 'left',
+                            beginAtZero: true,
+                            display: false
+                        },
+                        yPing: {
+                            type: 'linear',
+                            position: 'right',
+                            beginAtZero: true,
+                            grid: { drawOnChartArea: false },
+                            ticks: {
+                                color: '#f59e0b',
+                                font: { size: 10 },
+                                callback: val => val + ' ms'
+                            }
+                        }
                     }
                 }
             });
@@ -562,12 +778,126 @@ $phpVer = 'PHP ' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
                     pingChartInstance.update();
                 }
 
+                // Update Hourly Risk Section & Matrix
+                if (result.hourly_risk) {
+                    updateHourlyRiskSection(result.hourly_risk);
+                }
+
                 // Update Table
                 renderTable(result.logs);
 
             } catch (err) {
                 console.error("Gagal memuat data:", err);
             }
+        }
+
+        // Update Hourly Risk Summary & Heatmap Matrix
+        function updateHourlyRiskSection(riskData) {
+            if (!riskData) return;
+
+            // 1. Worst Hour Card
+            const worst = riskData.worst_hour;
+            if (worst && worst.risk_score > 0) {
+                document.getElementById('valWorstHour').textContent = worst.hour;
+                document.getElementById('badgeWorstRisk').textContent = `${worst.risk_score}% (${worst.level})`;
+                document.getElementById('badgeWorstRisk').className = `text-[10px] font-mono px-2 py-0.5 rounded border ${
+                    worst.risk_score >= 60 ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                }`;
+                document.getElementById('descWorstHour').innerHTML = `
+                    <span class="text-amber-400 font-mono">Ping: ${worst.avg_ping} ms</span> • 
+                    <span class="text-emerald-400 font-mono">DL: ${worst.avg_download} Mbps</span> (${worst.total_tests} tes)
+                `;
+            } else {
+                document.getElementById('valWorstHour').textContent = '--:--';
+                document.getElementById('badgeWorstRisk').textContent = 'N/A';
+                document.getElementById('descWorstHour').textContent = 'Belum cukup data';
+            }
+
+            // 2. Best Hour Card
+            const best = riskData.best_hour;
+            if (best && best.risk_score >= 0 && worst) {
+                document.getElementById('valBestHour').textContent = best.hour;
+                document.getElementById('badgeBestRisk').textContent = `${best.risk_score}% (${best.level})`;
+                document.getElementById('descBestHour').innerHTML = `
+                    <span class="text-amber-400 font-mono">Ping: ${best.avg_ping} ms</span> • 
+                    <span class="text-emerald-400 font-mono">DL: ${best.avg_download} Mbps</span> (${best.total_tests} tes)
+                `;
+            } else {
+                document.getElementById('valBestHour').textContent = '--:--';
+                document.getElementById('badgeBestRisk').textContent = 'N/A';
+                document.getElementById('descBestHour').textContent = 'Belum cukup data';
+            }
+
+            // 3. Segment Averages
+            const formatRiskBadge = (val) => {
+                if (val === null || val === undefined) return '<span class="text-slate-500">N/A</span>';
+                if (val >= 60) return `<span class="text-rose-400 font-bold">${val}% (Rawan)</span>`;
+                if (val >= 35) return `<span class="text-amber-400 font-bold">${val}% (Padat)</span>`;
+                return `<span class="text-emerald-400 font-bold">${val}% (Lancar)</span>`;
+            };
+            document.getElementById('valWorkRisk').innerHTML = formatRiskBadge(riskData.avg_work_risk);
+            document.getElementById('valNightRisk').innerHTML = formatRiskBadge(riskData.avg_night_risk);
+            document.getElementById('valOffpeakRisk').innerHTML = formatRiskBadge(riskData.avg_offpeak_risk);
+
+            // 4. Update Combo Chart
+            if (hourlyRiskChartInstance) {
+                hourlyRiskChartInstance.data.labels = riskData.labels;
+                hourlyRiskChartInstance.data.datasets[0].data = riskData.risk_scores;
+                hourlyRiskChartInstance.data.datasets[0].backgroundColor = riskData.risk_colors;
+                hourlyRiskChartInstance.data.datasets[1].data = riskData.pings;
+                hourlyRiskChartInstance.data.datasets[2].data = riskData.downloads;
+                hourlyRiskChartInstance.update();
+            }
+
+            // 5. Update Matrix Heatmap Grid (24 Jam)
+            const gridContainer = document.getElementById('hourlyMatrixGrid');
+            if (gridContainer && riskData.details) {
+                let gridHtml = '';
+                riskData.details.forEach(item => {
+                    const hasData = item.has_data;
+                    const bgClass = !hasData 
+                        ? 'bg-slate-800/40 border-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+                        : item.risk_score >= 60 
+                            ? 'bg-rose-500/20 border-rose-500/50 text-rose-300 hover:bg-rose-500/30 ring-1 ring-rose-500/30'
+                            : item.risk_score >= 35 
+                                ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 hover:bg-amber-500/30'
+                                : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/30';
+
+                    const clickAttr = hasData 
+                        ? `onclick="showHourDetailModal('${item.hour}', ${item.risk_score}, '${item.risk_badge}', ${item.avg_download}, ${item.avg_upload}, ${item.avg_ping}, ${item.avg_jitter}, ${item.total_tests})"`
+                        : '';
+
+                    gridHtml += `
+                        <button type="button" ${clickAttr} title="${item.hour} - ${item.risk_badge} (Ping: ${item.avg_ping}ms, DL: ${item.avg_download}Mbps)" 
+                                class="flex flex-col items-center justify-center p-1.5 rounded-lg border text-center transition-all ${bgClass}">
+                            <span class="text-[10px] font-mono font-bold">${item.hour.substring(0, 2)}</span>
+                            <span class="text-[9px] font-mono mt-0.5">${hasData ? item.risk_score + '%' : '-'}</span>
+                        </button>
+                    `;
+                });
+                gridContainer.innerHTML = gridHtml;
+            }
+        }
+
+        // Modal Rincian Jam Saat Grid Diklik
+        function showHourDetailModal(hour, score, badge, dl, ul, ping, jitter, tests) {
+            Swal.fire({
+                title: `Analisis Jam ${hour} WITA`,
+                html: `
+                    <div class="text-sm space-y-2.5 text-left mt-3 font-mono">
+                        <div class="flex justify-between border-b border-slate-700/60 pb-1.5"><span class="text-slate-400 font-sans">Status Jam:</span> <b class="${score >= 60 ? 'text-rose-400' : (score >= 35 ? 'text-amber-400' : 'text-emerald-400')}">${badge} (${score}%)</b></div>
+                        <div class="flex justify-between border-b border-slate-700/60 pb-1.5"><span class="text-slate-400 font-sans">Rata-rata Ping:</span> <b class="text-amber-400">${ping} ms</b></div>
+                        <div class="flex justify-between border-b border-slate-700/60 pb-1.5"><span class="text-slate-400 font-sans">Rata-rata Jitter:</span> <b class="text-slate-300">${jitter} ms</b></div>
+                        <div class="flex justify-between border-b border-slate-700/60 pb-1.5"><span class="text-slate-400 font-sans">Rata-rata Download:</span> <b class="text-emerald-400">${dl} Mbps</b></div>
+                        <div class="flex justify-between border-b border-slate-700/60 pb-1.5"><span class="text-slate-400 font-sans">Rata-rata Upload:</span> <b class="text-purple-400">${ul} Mbps</b></div>
+                        <div class="flex justify-between"><span class="text-slate-400 font-sans">Total Sampel Pengujian:</span> <b class="text-indigo-300">${tests} kali</b></div>
+                    </div>
+                `,
+                icon: score >= 60 ? 'warning' : 'info',
+                background: '#151d30',
+                color: '#fff',
+                confirmButtonColor: '#4f46e5'
+            });
         }
 
         // Render Data Table
